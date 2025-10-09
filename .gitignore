@@ -1,0 +1,8 @@
+.vscode
+__pycache__/
+*.py[cod]
+db.sqlite3
+**/migrations/*
+!**/migrations/__init__.py
+*.log
+.env
