@@ -16,7 +16,7 @@ class RegisterView(CreateAPIView):
 
 
 class PublicUserProfileView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         serializer = PublicUserSerializer(request.user)
