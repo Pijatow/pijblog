@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "rest_framework",
+    "drf_spectacular",
     "taggit",
     "accounts",
     "blog",
@@ -148,6 +149,7 @@ MEDIA_ROOT = "uploaded_media/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 3,
     "DEFAULT_RENDERER_CLASSES": [
@@ -168,3 +170,10 @@ SIMPLE_JWT = {
 }
 
 APPEND_SLASH = True
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "PijBlog API Docs",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    # OTHER SETTINGS
+}
