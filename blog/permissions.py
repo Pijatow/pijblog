@@ -1,7 +1,7 @@
 from rest_framework import permissions
 
 
-class IsOwnerOrReadOnly(permissions.BasePermission):
+class IsAuthorOrReadOnly(permissions.BasePermission):
     """
     Custom permission to only allow owners of an object to edit it.
     """
@@ -16,9 +16,9 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
         return obj.author == request.user
 
 
-class IsAdminOrOwnerOrReadOnly(permissions.BasePermission):
+class IsAdminOrAuthorOrReadOnly(permissions.BasePermission):
     """
-    Custom permission to allow admins or owners to edit, others read-only.
+    Custom permission to allow admins or authors to edit, others read-only.
     """
 
     def has_object_permission(self, request, view, obj):
@@ -28,9 +28,9 @@ class IsAdminOrOwnerOrReadOnly(permissions.BasePermission):
         return request.user.is_staff or obj.author == request.user
 
 
-class IsOwnerOrAdmin(permissions.BasePermission):
+class IsAuthorOrAdmin(permissions.BasePermission):
     """
-    Custom permission to only allow owners or admins to edit/delete.
+    Custom permission to only allow authors or admins to edit/delete.
     """
 
     def has_object_permission(self, request, view, obj):
@@ -52,7 +52,7 @@ class BlogEntryPermission(permissions.BasePermission):
         return False  # Deny other methods at the list level
 
     def has_object_permission(self, request, view, obj):
-        # Owners can do anything with their own entries
+        # Authors can do anything with their own entries
         if obj.author == request.user:
             return True
 
@@ -86,7 +86,7 @@ class CommentPermission(permissions.BasePermission):
         return False  # Deny other methods at the list level
 
     def has_object_permission(self, request, view, obj):
-        # Owners can do anything with their own comments
+        # Authors can do anything with their own comments
         if obj.author == request.user:
             return True
 
