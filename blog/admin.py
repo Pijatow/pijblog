@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import BlogEntry, Comment, LogEntry
+from .models import BlogEntry, Comment
 
 
 @admin.register(BlogEntry)
@@ -19,11 +19,3 @@ class CommentAdmin(admin.ModelAdmin):
     list_filter = ("created_at", "updated_at", "author__username")
     search_fields = ("content", "author__username")
     readonly_fields = ("created_at", "updated_at")
-
-
-@admin.register(LogEntry)
-class LogEntryAdmin(admin.ModelAdmin):
-    list_display = ("action", "blog_entry", "user", "timestamp")
-    list_filter = ("action", "timestamp", "user__username")
-    search_fields = ("blog_entry__title", "user__username", "details")
-    readonly_fields = ("timestamp",)
