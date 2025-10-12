@@ -32,6 +32,16 @@ urlpatterns = [
         name="comment-list-create",
     ),
     path(
+        "entries/slug/<slug:blog_entry_slug>/comments/",
+        CommentListCreateAPIView.as_view(),
+        name="comment-list-create",
+    ),
+    path(
+        "entries/short/<str:blog_entry_short_url_id>/comments/",
+        CommentListCreateAPIView.as_view(),
+        name="comment-list-create",
+    ),
+    path(
         "comments/<int:pk>/",
         CommentRetrieveUpdateDestroyAPIView.as_view(),
         name="comment-detail",
