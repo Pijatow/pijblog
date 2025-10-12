@@ -21,6 +21,12 @@ class IsAdminOrAuthorOrReadOnly(permissions.BasePermission):
     Custom permission to allow admins or authors to edit, others read-only.
     """
 
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        return request.user.is_authenticated
+
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
@@ -44,10 +50,10 @@ class BlogEntryPermission(permissions.BasePermission):
 
     def has_permission(self, request, view):
         # Authenticated users can create blog entries (POST request)
-        if request.method == 'POST':
+        if request.method == "POST":
             return request.user.is_authenticated
         # Anyone can list blog entries (GET request)
-        if request.method == 'GET':
+        if request.method == "GET":
             return True
         return False  # Deny other methods at the list level
 
@@ -57,15 +63,15 @@ class BlogEntryPermission(permissions.BasePermission):
             return True
 
         # Public entries are readable by anyone
-        if obj.status == 'PUBLIC' and request.method in permissions.SAFE_METHODS:
+        if obj.status == "PUBLIC" and request.method in permissions.SAFE_METHODS:
             return True
 
         # Unlisted entries are readable by anyone with the link (handled by view logic, not permission)
-        if obj.status == 'UNLISTED' and request.method in permissions.SAFE_METHODS:
+        if obj.status == "UNLISTED" and request.method in permissions.SAFE_METHODS:
             return True
 
         # Private entries are only accessible by the owner
-        if obj.status == 'PRIVATE':
+        if obj.status == "PRIVATE":
             return False
 
         return False
@@ -78,10 +84,10 @@ class CommentPermission(permissions.BasePermission):
 
     def has_permission(self, request, view):
         # Authenticated users can create comments (POST request)
-        if request.method == 'POST':
+        if request.method == "POST":
             return request.user.is_authenticated
         # Anyone can list comments (GET request)
-        if request.method == 'GET':
+        if request.method == "GET":
             return True
         return False  # Deny other methods at the list level
 
@@ -92,7 +98,7 @@ class CommentPermission(permissions.BasePermission):
 
         # Read permissions are allowed to any request for comments on public/unlisted entries
         if request.method in permissions.SAFE_METHODS:
-            if obj.blog_entry.status in ['PUBLIC', 'UNLISTED']:
+            if obj.blog_entry.status in ["PUBLIC", "UNLISTED"]:
                 return True
 
         return False
