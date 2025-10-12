@@ -4,6 +4,7 @@ from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
     SpectacularRedocView,
+    SpectacularJSONAPIView,
 )
 
 urlpatterns = [
@@ -11,6 +12,7 @@ urlpatterns = [
     path("api/blog/", include("blog.urls")),
     path("api/account/", include("accounts.urls")),
     path("api/schema", SpectacularAPIView.as_view(), name="schema"),
+    path("api/schema.json", SpectacularJSONAPIView.as_view(), name="schema"),
     path(
         "api/schema/swagger",
         SpectacularSwaggerView.as_view(url_name="schema"),
