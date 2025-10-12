@@ -1,24 +1,17 @@
-from rest_framework.response import Response
-from rest_framework import generics
-from rest_framework import status
-from rest_framework.permissions import (
-    IsAuthenticatedOrReadOnly,
-    IsAdminUser,
-)
-
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from django.http import Http404
 
-from .models import BlogEntry, Comment, LogEntry
-from .serializers import BlogEntrySerializer, CommentSerializer, LogEntrySerializer
-from .permissions import (
-    IsAdminOrAuthorOrReadOnly,
-)
+from rest_framework import viewsets
+
+from .models import BlogEntry, Comment
+from .serializers import BlogEntrySerializer, CommentSerializer
+from .permissions import IsAdminOrAuthorOrReadOnly
 
 
-class BlogEntryListCreateAPIView(generics.ListCreateAPIView):
+class BlogEntryViewSet(viewsets.ModelViewSet):
     serializer_class = BlogEntrySerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAdminOrAuthorOrReadOnly]
 
     def get_queryset(self):
         user = self.request.user
@@ -28,119 +21,42 @@ class BlogEntryListCreateAPIView(generics.ListCreateAPIView):
             ).distinct()
         return BlogEntry.objects.filter(status="PUBLIC")
 
-    def perform_create(self, serializer):
-        blog_entry = serializer.save(author=self.request.user)
-        LogEntry.objects.create(
-            blog_entry=blog_entry,
-            user=self.request.user,
-            action="CREATED",
-            details=f'Blog entry "{blog_entry.title}" created.',
-        )
-
-
-class BlogEntryRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = BlogEntry.objects.all()
-    serializer_class = BlogEntrySerializer
-    permission_classes = [IsAdminOrAuthorOrReadOnly()]
-    lookup_field = "pk"  # Default lookup field
-
     def get_object(self):
         queryset = self.get_queryset()
+
         if "slug" in self.kwargs:
             obj = get_object_or_404(queryset, slug=self.kwargs["slug"])
         elif "short_url_id" in self.kwargs:
             obj = get_object_or_404(queryset, short_url_id=self.kwargs["short_url_id"])
         else:
-            obj = super().get_object()
+            obj = get_object_or_404(queryset, pk=self.kwargs["pk"])
 
         self.check_object_permissions(self.request, obj)
         return obj
 
-    def retrieve(self, request, *args, **kwargs):
-        obj = self.get_object()
 
-        # Log view action for public and unlisted entries
-        if obj.status in ["PUBLIC", "UNLISTED"] and request.user != obj.author:
-            LogEntry.objects.create(
-                blog_entry=obj,
-                user=request.user if request.user.is_authenticated else None,
-                action="VIEWED",
-                details=f'Blog entry "{obj.title}" viewed.',
-            )
-        serializer = self.get_serializer(obj)
-        return Response(serializer.data)
-
-    def perform_update(self, serializer):
-        blog_entry = serializer.save()
-        LogEntry.objects.create(
-            blog_entry=blog_entry,
-            user=self.request.user,
-            action="UPDATED",
-            details=f'Blog entry "{blog_entry.title}" updated.',
-        )
-
-    def perform_destroy(self, instance):
-        LogEntry.objects.create(
-            blog_entry=instance,
-            user=self.request.user,
-            action="DELETED",
-            details=f'Blog entry "{instance.title}" deleted.',
-        )
-        instance.delete()
-
-
-class CommentListCreateAPIView(generics.ListCreateAPIView):
-    serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-
-    def get_queryset(self):
-        blog_entry_pk = self.kwargs.get("blog_entry_pk")
-        blog_entry = get_object_or_404(BlogEntry, pk=blog_entry_pk)
-        return blog_entry.comments.all()
-
-    def perform_create(self, serializer):
-        blog_entry_pk = self.kwargs.get("blog_entry_pk")
-        blog_entry = get_object_or_404(BlogEntry, pk=blog_entry_pk)
-        serializer.save(author=self.request.user, blog_entry=blog_entry)
-        LogEntry.objects.create(
-            blog_entry=blog_entry,
-            user=self.request.user,
-            action="CREATED",
-            details=f'Comment added to "{blog_entry.title}".',
-        )
-
-
-class CommentRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Comment.objects.all()
+class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [IsAdminOrAuthorOrReadOnly]
+    lookup_field = "comment_number"
 
-    def perform_update(self, serializer):
-        instance = serializer.save()
-        LogEntry.objects.create(
-            blog_entry=instance.blog_entry,
-            user=self.request.user,
-            action="UPDATED",
-            details=f'Comment on "{instance.blog_entry.title}" updated.',
-        )
+    def get_blog_entry(self):
+        lookup_params = {
+            "blog_entry_pk": "pk",
+            "blog_entry_slug": "slug",
+            "blog_entry_short_url": "short_url_id",
+        }
 
-    def perform_destroy(self, instance):
-        LogEntry.objects.create(
-            blog_entry=instance.blog_entry,
-            user=self.request.user,
-            action="DELETED",
-            details=f'Comment on "{instance.blog_entry.title}" deleted.',
-        )
-        instance.delete()
+        for kwarg, field in lookup_params.items():
+            if kwarg in self.kwargs:
+                return get_object_or_404(BlogEntry, **{field: self.kwargs[kwarg]})
 
-
-class LogEntryListAPIView(generics.ListAPIView):
-    serializer_class = LogEntrySerializer
-    permission_classes = [IsAdminUser]
+        raise Http404("Blog entry not found")
 
     def get_queryset(self):
-        if self.request.user.is_superuser or self.request.user.is_staff:
-            return LogEntry.objects.all()
-        return LogEntry.objects.filter(
-            Q(blog_entry__author=self.request.user) | Q(user=self.request.user)
-        ).distinct()
+        blog_entry = self.get_blog_entry()
+        return Comment.objects.filter(blog_entry=blog_entry)
+
+    def perform_create(self, serializer):
+        blog_entry = self.get_blog_entry()
+        serializer.save(author=self.request.user, blog_entry=blog_entry)
