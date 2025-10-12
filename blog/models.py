@@ -61,37 +61,25 @@ class Comment(models.Model):
     )
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
     content = models.TextField()
+    comment_number = models.PositiveIntegerField(editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["created_at"]
+        unique_together = [
+            "blog_entry",
+            "comment_number",
+        ]  # Ensure uniqueness per blog entry
+
+    def save(self, *args, **kwargs):
+        if not self.comment_number:
+            # Get the maximum comment number for this blog entry
+            max_number = Comment.objects.filter(blog_entry=self.blog_entry).aggregate(
+                models.Max("comment_number")
+            )["comment_number__max"]
+            self.comment_number = (max_number or 0) + 1
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Comment by {self.author} on {self.blog_entry.title}"
-
-
-class LogEntry(models.Model):
-    ACTION_CHOICES = (
-        ("CREATED", "Created"),
-        ("UPDATED", "Updated"),
-        ("DELETED", "Deleted"),
-        ("VIEWED", "Viewed"),
-    )
-    blog_entry = models.ForeignKey(
-        BlogEntry, on_delete=models.CASCADE, related_name="logs", null=True, blank=True
-    )
-    user = models.ForeignKey(
-        User, related_name="logs", on_delete=models.SET_NULL, null=True, blank=True
-    )
-
-    action = models.CharField(max_length=10, choices=ACTION_CHOICES)
-    timestamp = models.DateTimeField(auto_now_add=True)
-    details = models.TextField(blank=True, null=True)
-
-    class Meta:
-        ordering = ["-timestamp"]
-
-    def __str__(self):
-        blog_title = self.blog_entry.title if self.blog_entry else "N/A"
-        return f"{self.action} by {self.user} on {blog_title} at {self.timestamp}"
