@@ -34,6 +34,10 @@ class BlogEntryViewSet(viewsets.ModelViewSet):
         self.check_object_permissions(self.request, obj)
         return obj
 
+    def perform_create(self, serializer):
+        user = self.request.user
+        serializer.save(author=user)
+
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
